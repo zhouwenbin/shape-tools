@@ -18,7 +18,7 @@ script: |
     var settings = {
         divideXBy: 1,
         divideYBy: 1,
-        units: '',
+        units: 'px',
         precision: 3
     };
     function pointCommandsToSVGPoints(pointCommands) {
@@ -28,8 +28,15 @@ script: |
     }
     function pointCommandsToCSSPoints(pointCommands, settings) {
         return pointCommands.map(function(value, index, array) {
+            if(settings.units=="%"){
+                value/=5;
+            }
+            if(settings.units=="em"){
+                value/=16;
+            }
             return  (value / (index % 2 == 0 ? settings.divideXBy : settings.divideYBy)).toFixed(settings.precision)
                     + settings.units + ((index % 2 == 1 && index < array.length - 1) ? ',' : '');
+            
         }).join(' ');
     }
     function pathToPoints(segments) {
@@ -96,23 +103,23 @@ script: |
             viewPort = 'x:' + svg.getAttribute('x') + ' y:' + svg.getAttribute('y')
                         + ' width:' + svg.getAttribute('width') + ' height:' + svg.getAttribute('height');
         document.getElementById('viewbox').innerHTML = 'ViewPort: ' + viewPort;
-        document.getElementById('svg-result').innerHTML = document.getElementById('svg-original').innerHTML;
-        var paths = document.querySelectorAll('#svg-result path');
-        var cssPolygons = ['<ul>'];
+        document.getElementById('css-result').innerHTML = document.getElementById('svg-original').innerHTML;
+        var paths = document.querySelectorAll('#css-result path');
+        var cssPolygons = ['<div style="width:'+svg.getAttribute('width')+';height:'+svg.getAttribute('height')+'">'];
         for (var i = 0; i < paths.length; i++) {
             var path = paths[i];
+            var fill = paths[i].getAttribute('fill');
             var points = pathToPoints(path.pathSegList);
             var polygonSVGPoints = pointCommandsToSVGPoints(points);
     
             var polygon = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-            polygon.setAttributeNS(null, 'fill', '#cecece');
+            polygon.setAttributeNS(null, 'fill', fill);
             polygon.setAttributeNS(null, 'points', polygonSVGPoints);
             path.parentNode.replaceChild(polygon, path);
     
-            cssPolygons.push('<li>', 'polygon(', pointCommandsToCSSPoints(points, settings), ')', '</li>');
+            cssPolygons.push('<div style="position:absolute;', '-webkit-clip-path:polygon(', pointCommandsToCSSPoints(points, settings), ');width:'+svg.getAttribute('width')+';height:'+svg.getAttribute('height')+';background-color:'+fill+'">', '</div>');
         }
-        cssPolygons.push('</ul>');
-        document.getElementById('output').innerHTML = cssPolygons.join('');
+        document.getElementById('css-result').innerHTML = cssPolygons.join('');
     }
     window.onload = function() {
         var gui = new dat.GUI({ autoPlace: false });
@@ -128,10 +135,8 @@ script: |
                 crunch();
             }
         );
-        gui.add(settings, "units", ['none', 'px', '%', 'em']).onFinishChange(
+        gui.add(settings, "units", [ 'px', '%', 'em']).onFinishChange(
             function(newValue) {
-                if (newValue === 'none')
-                    settings.units = '';
                 crunch();
             }
         );
