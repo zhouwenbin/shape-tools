@@ -33,7 +33,7 @@ script: |
                 value/=5;
             }
             if(settings.units=="em"){
-                value=value/16*12;
+                value=value/16;
             }
             return  (value / (index % 2 == 0 ? settings.divideXBy : settings.divideYBy)).toFixed(settings.precision)
                     + settings.units + ((index % 2 == 1 && index < array.length - 1) ? ',' : '');
